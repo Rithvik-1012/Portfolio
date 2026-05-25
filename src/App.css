@@ -344,7 +344,7 @@ main { position: relative; z-index: 2 }
 .cbig {
   font-family: var(--disp); font-size: clamp(3rem,8vw,8rem);
   line-height: .9; letter-spacing: 2px;
-  color: transparent; -webkit-text-stroke: 1px rgba(220,232,244,.13);
+  color: transparent; -webkit-text-stroke: 1px rgba(220,232,244,.35);
   margin-bottom: 1.5rem;
 }
 .csub {
