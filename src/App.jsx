@@ -1,706 +1,663 @@
-import React, { useState, useEffect } from 'react';
-import Galaxy from './Galaxy';
-import LogoLoop from './LogoLoop';
-import ClickSpark from './ClickSpark';
-import InfiniteMenu from './InfiniteMenu';
-import Dock from './Dock';
-import ShinyText from './ShinyText';
-import TextPressure from './TextPressure';
-import MagicBento from './MagicBento';
-import GlareHover from './GlareHover';
-import TiltedCard from './TiltedCard';
-import PillNav from './PillNav';
-import './App.css';
-import './CardShine.css';
-import Carousel from './Carousel';
+import { useEffect, useRef, useState, useCallback } from "react";
+import "./App.css";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+gsap.registerPlugin(ScrollTrigger);
 
-function App() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') return 'dark';
-    return localStorage.getItem('theme') || 'dark';
-  });
+/* ═══════════ DATA ═══════════════════════════════════════════ */
+const NAV = ["about","skills","projects","experience","publications","contact"];
 
+const SKILLS = [
+  { n:"01", cat:"Languages",        tags:["Python","Java","TypeScript","C++","SQL","C"] },
+  { n:"02", cat:"Backend & APIs",   tags:["Node.js","Express","Flask","REST","WebSockets","Microservices"] },
+  { n:"03", cat:"Data Engineering", tags:["Kafka","Apache Spark","Airflow","ETL","Stream Processing"] },
+  { n:"04", cat:"Cloud & Infra",    tags:["AWS EC2","S3","Lambda","ECS","Docker","Kubernetes"] },
+  { n:"05", cat:"Databases",        tags:["PostgreSQL","Redis","MySQL","Elasticsearch"] },
+  { n:"06", cat:"ML & AI",          tags:["Anomaly Detection","Deep Learning","Computer Vision","LLM APIs"] },
+  { n:"07", cat:"DevOps",           tags:["CI/CD","Jenkins","GitHub Actions","Prometheus","Grafana"] },
+  { n:"08", cat:"Frontend",         tags:["React","Redux","TypeScript","HTML5","CSS3"] },
+];
+
+const PROJECTS = [
+  {
+    n:"01", ft:true, color:"#00d4ff",
+    tag:"Real-Time Infrastructure",
+    title:"High-Throughput Stream Processing System",
+    desc:"Event-driven architecture processing 8TB+/day with exactly-once semantics and sub-second end-to-end latency. Fault-tolerant microservices with circuit breakers, dead-letter queues, and Kubernetes HPA.",
+    stack:["Kafka","Spark Streaming","Airflow","Python","Kubernetes","Docker","Grafana"],
+    stats:[["8TB+","Daily Volume"],["<1s","Latency"],["50+","Custom Metrics"],["12min","Incident Detection"]],
+    url:"https://github.com/YOUR_GITHUB",
+  },
+  {
+    n:"02", ft:false, color:"#7b2fff",
+    tag:"Full Stack · Search",
+    title:"E-Commerce Product Search Platform",
+    desc:"React + TypeScript frontend, Node.js/Express backend. Elasticsearch full-text search across 10K+ products with faceted filtering, JWT auth, Redis caching — sub-300ms response times.",
+    stack:["React","TypeScript","Node.js","Elasticsearch","Redis","PostgreSQL","Docker"],
+    stats:[["<300ms","Response Time"],["10K+","Products Indexed"]],
+    url:"https://github.com/YOUR_GITHUB",
+  },
+  {
+    n:"03", ft:false, color:"#ff2f6e",
+    tag:"HPC · Distributed Computing",
+    title:"Parallel Distributed Computing Framework",
+    desc:"MPI + C++ parallel solver for 2D heat diffusion. 9× speedup with 85% parallel efficiency on 8-node cluster. Non-blocking I/O, message aggregation, benchmarked across 16M+ grid points.",
+    stack:["MPI","C++","Python","HPC","Bash"],
+    stats:[["9×","Speedup"],["85%","Parallel Efficiency"]],
+    url:"https://github.com/YOUR_GITHUB",
+  },
+];
+
+const EXP = [
+  {
+    period:"May 2025 – Sep 2025", role:"Software Engineering Intern",
+    co:"Quadrant Technologies", loc:"Seattle, USA",
+    pts:[
+      "Optimized backend API endpoints using Python/Flask and PostgreSQL, implementing Redis caching that reduced query response times by 40% for data-heavy analytics dashboards",
+      "Built end-to-end testing solution using pytest and Docker, integrated with Jenkins CI/CD, reducing manual testing workload by 60% and accelerating bug identification within development sprints",
+      "Implemented production monitoring and alerting using Prometheus and Grafana, creating custom dashboards to track API performance metrics and error rates across services",
+      "Contributed to microservices migration, refactoring monolithic codebase into containerized services using Docker and deploying to AWS ECS with improved scalability",
+    ],
+  },
+  {
+    period:"May 2022 – Dec 2023", role:"Software Engineer",
+    co:"American Express", loc:"Bengaluru, India",
+    pts:[
+      "Designed and developed event-driven microservices for real-time payment processing systems using Java and Spring Boot, integrated with Kafka message queues to handle high-throughput transaction streams and reduce end-to-end processing latency by 45%",
+      "Built and maintained scalable REST APIs powering customer-facing financial products including fraud detection and risk scoring services, improving system throughput by 60% and reducing deployment time from weeks to hours via automated CI/CD pipelines on AWS",
+      "Engineered distributed data processing workflows using Apache Spark across multi-terabyte transaction datasets, reducing analytics pipeline turnaround by 70% and enabling near-real-time reporting for risk and compliance teams",
+      "Drove platform reliability initiatives including automated regression testing, blue-green deployments, and monitoring dashboards, achieving 99.9% system uptime and reducing production incidents by 50%",
+    ],
+  },
+  {
+    period:"May 2021 – May 2022", role:"Software Development Intern",
+    co:"National Atmospheric Research Laboratory", loc:"Tirupati, India",
+    pts:[
+      "Built batch processing framework using Apache Spark and Python, handling multi-terabyte atmospheric datasets with 85% resource utilization across distributed clusters",
+      "Developed real-time analytics dashboard with React and WebSocket connections, providing live atmospheric insights that improved forecasting model accuracy by 20%",
+      "Optimized data ingestion pipelines using Python, Airflow, and Bash, reducing manual processing time from 2 hours to 25 minutes and eliminating data errors",
+    ],
+  },
+];
+
+const CERTS = [
+  {b:"AWS", n:"AWS Certified Solutions Architect", s:"Amazon Web Services · Associate"},
+  {b:"OCI", n:"Oracle Cloud AI Foundations 2025", s:"Oracle · Certified Associate"},
+  {b:"OCA", n:"Oracle Certified Java Programmer", s:"Oracle · Associate"},
+  {b:"UB",  n:"M.S. Computer Science and Engineering", s:"University at Buffalo · 2024 to 2026"},
+];
+
+const PUBS = [
+  {
+    title:"Evaluation of GNSS-Based Machine Learning Techniques for Nowcasting of Storms",
+    pts:[
+      "Applied advanced ML techniques to GNSS datasets using TensorFlow, enabling real-time atmospheric monitoring and enhancing storm prediction accuracy by 15%",
+      "Proposed a scalable deep learning framework for GNSS signal preprocessing and anomaly detection, demonstrating improved model precision through comprehensive ablation studies",
+      "Conducted end-to-end experimentation with hyperparameter tuning using Optuna and custom evaluation metrics tailored for geospatial time-series data",
+    ],
+  },
+];
+
+/* ═══════════ WEBGL BACKGROUND ══════════════════════════════ */
+function WebGLBg() {
+  const ref = useRef(null);
   useEffect(() => {
-    const body = document.body;
-    if (theme === 'light') body.classList.add('theme-light');
-    else body.classList.remove('theme-light');
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+    const cv = ref.current;
+    if (!cv) return;
+    const gl = cv.getContext("webgl2") || cv.getContext("webgl");
+    if (!gl) return;
 
-  const toggleTheme = () => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  // Skills/Technologies logos
-  const skillLogos = [
-    { node: <div className="skill-logo">AI Systems</div>, title: 'AI Systems' },
-    { node: <div className="skill-logo">Machine Learning</div>, title: 'Machine Learning' },
-    { node: <div className="skill-logo">NLP (Transformers/NER)</div>, title: 'NLP (Transformers/NER)' },
-    { node: <div className="skill-logo">Model Evaluation</div>, title: 'Model Evaluation' },
-    { node: <div className="skill-logo">Data Engineering</div>, title: 'Data Engineering' },
-    { node: <div className="skill-logo">Python</div>, title: 'Python' },
-    { node: <div className="skill-logo">SQL</div>, title: 'SQL' },
-    { node: <div className="skill-logo">Prolog</div>, title: 'Prolog' },
-    { node: <div className="skill-logo">Secure API Design</div>, title: 'Secure API Design' },
-    { node: <div className="skill-logo">JWT Security</div>, title: 'JWT Security' },
-    { node: <div className="skill-logo">Git & Linux</div>, title: 'Git & Linux' },
-    { node: <div className="skill-logo">Tableau / Streamlit</div>, title: 'Tableau / Streamlit' }
-  ];
-
-  // Project items list with direct URLs and concise narratives
-  const projectItems = [
-    {
-      title: 'JWT Authentication Vulnerability Analysis',
-      url: 'https://fire-wall.netlify.app/',
-      description: 'HS256 misconfig audit → privilege escalation path documented; security-by-design takeaways.'
-    },
-    {
-      title: 'GSCC (Game System Compatibility Checker)',
-      url: 'https://iridescent-rolypoly-782dae.netlify.app/',
-      description: 'Rule-based scoring + heuristics to validate game hardware/software readiness with actionable flags.'
-    },
-    {
-      title: 'Customer Churn Prediction',
-      url: 'https://app--clay-shop-1f50815c.base44.app/',
-      description: 'Streamlit ML app with calibrated probabilities; highlights top churn drivers for retention teams.'
-    },
-    {
-      title: 'Named Entity Linking (NEL)',
-      url: 'https://nel-by-ms.netlify.app/',
-      description: 'NLP pipeline linking entities to knowledge base entries; evaluates precision/recall with examples.'
-    },
-    {
-      title: 'Attendance, Salary, PF, Performance Tracker',
-      url: 'https://wmsms.vercel.app/',
-      description: 'Operational dashboard with role-based access, payroll computations, and anomaly surfacing.'
-    },
-    {
-      title: 'CardioDetect',
-      url: 'https://dlqmwdpj.manus.space/',
-      description: 'Risk stratification model; focuses on interpretability with feature importance overlays.'
-    },
-    {
-      title: 'Text Analyzer Pro',
-      url: 'https://analyzetex.netlify.app/',
-      description: 'NLP workbench for sentiment, readability, and entity extraction with transparent outputs.'
-    },
-    {
-      title: 'E-Commerce Recommendation System',
-      url: 'https://ss-analysis-ms.netlify.app/',
-      description: 'Hybrid recommenders (content + collaborative) benchmarked on relevance and diversity.'
-    },
-    {
-      title: 'Spam Mail Analyzer',
-      url: 'https://app--cosmic-guard-30c712d6.base44.app/',
-      description: 'Email classification with feature explanations to reduce false positives for ops teams.'
-    },
-    {
-      title: 'SmartCity IoT',
-      url: 'https://splendid-pika-249aa2.netlify.app/',
-      description: 'Sensor data ingestion + alerting; simulates edge-to-cloud pipeline with simple dashboards.'
-    },
-    {
-      title: 'Life Pattern Analyzer',
-      url: 'https://lifexly.netlify.app/',
-      description: 'Behavioral pattern mining; surfaces routines and deviations with privacy-aware summaries.'
-    },
-    {
-      title: 'msGPT',
-      url: 'https://gptbymayank.lovable.app/',
-      description: 'Lightweight LLM front-end with guardrails and prompt templates for repeatable outputs.'
-    }
-  ];
-
-  useEffect(() => {
-    // FAQ Accordion
-    const faqQuestions = document.querySelectorAll('.faq-question');
-    faqQuestions.forEach(question => {
-      question.addEventListener('click', () => {
-        const faqItem = question.parentElement;
-        const isActive = faqItem.classList.contains('active');
-        
-        document.querySelectorAll('.faq-item').forEach(item => {
-          item.classList.remove('active');
-        });
-        
-        if (!isActive) {
-          faqItem.classList.add('active');
-        }
-      });
-    });
-
-    // Intersection Observer for Animations
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
+    const resize = () => {
+      cv.width = window.innerWidth;
+      cv.height = window.innerHeight;
+      gl.viewport(0, 0, cv.width, cv.height);
     };
+    resize();
+    window.addEventListener("resize", resize, { passive: true });
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.opacity = '1';
-          entry.target.style.transform = 'translateY(0)';
-        }
-      });
-    }, observerOptions);
+    const VS = `attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;gl_Position=vec4(p,0.,1.);}`;
+    const FS = `precision highp float;
+varying vec2 v;uniform float t;uniform vec2 m;uniform float vx,vy,sc;
+vec2 h2(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return fract(sin(p)*43758.5453);}
+float no(vec2 p){vec2 i=floor(p),f=fract(p),u=f*f*(3.-2.*f);return mix(mix(dot(h2(i),f),dot(h2(i+vec2(1,0)),f-vec2(1,0)),u.x),mix(dot(h2(i+vec2(0,1)),f-vec2(0,1)),dot(h2(i+vec2(1)),f-vec2(1)),u.x),u.y)*.5+.5;}
+float fb(vec2 p){float r=0.,a=.5;for(int i=0;i<6;i++){r+=a*no(p);p*=2.1;a*=.48;}return r;}
+vec3 pal(float t){return vec3(.02,.04,.09)+vec3(.02,.04,.09)*cos(6.28*(vec3(.9,.4,.8)*t+vec3(0.,.33,.67)));}
+void main(){
+  vec2 uv=v,md=uv-m;
+  float sp=length(vec2(vx,vy)),d=length(md*vec2(1.78,1.)),infl=smoothstep(.4,0.,d)*clamp(sp*20.,0.,1.);
+  uv+=normalize(md+.001)*infl*-.05;uv.y+=sc*.00012;
+  float tt=t*.11;
+  vec2 q=vec2(fb(uv+tt),fb(uv+vec2(3.1,1.7)+tt*.7));
+  vec2 r=vec2(fb(uv+4.*q+vec2(1.7,9.2)+tt*.3),fb(uv+4.*q+vec2(8.3,2.8)+tt*.4));
+  float f=fb(uv+4.*r),ca=.005+clamp(sp*8.,0.,.018);
+  vec2 cd=normalize(md+.001)*ca;
+  vec3 col;
+  col.r=mix(.01,.08,fb(uv+4.*r+cd*1.5));
+  col.g=mix(.02,.06,f);
+  col.b=mix(.03,.16,fb(uv+4.*r-cd*1.8));
+  col+=pal(f+tt*.07)*(.18+.48*f);
+  if(sp>.003){float h=t*.01+d*2.,k=clamp(sp*7.,0.,1.)*infl*.4;col.r=mix(col.r,sin(h)*.5+.5,k);col.g=mix(col.g,sin(h+2.094)*.5+.5,k);col.b=mix(col.b,sin(h+4.188)*.5+.5,k);}
+  vec2 g=fract(uv*vec2(24.,14.));col+=(1.-min(smoothstep(0.,.03,g.x),smoothstep(0.,.03,g.y)))*.01*vec3(.3,.9,1.);
+  vec2 vg=v*2.-1.;col*=1.-dot(vg,vg)*.62;
+  gl_FragColor=vec4(col,1.);}`;
 
-    const animateElements = document.querySelectorAll('.step-card, .service-card, .review-card, .project-card, .timeline-item');
-    animateElements.forEach(el => {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(30px)';
-      el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-      observer.observe(el);
-    });
+    const mk = (tp, src) => {
+      const s = gl.createShader(tp);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      return s;
+    };
+    const pg = gl.createProgram();
+    gl.attachShader(pg, mk(gl.VERTEX_SHADER, VS));
+    gl.attachShader(pg, mk(gl.FRAGMENT_SHADER, FS));
+    gl.linkProgram(pg);
+    gl.useProgram(pg);
 
-    return () => observer.disconnect();
+    const b = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, b);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,3,-1,-1,3]), gl.STATIC_DRAW);
+    const ap = gl.getAttribLocation(pg, "p");
+    gl.enableVertexAttribArray(ap);
+    gl.vertexAttribPointer(ap, 2, gl.FLOAT, false, 0, 0);
+
+    const uT  = gl.getUniformLocation(pg, "t");
+    const uM  = gl.getUniformLocation(pg, "m");
+    const uVX = gl.getUniformLocation(pg, "vx");
+    const uVY = gl.getUniformLocation(pg, "vy");
+    const uSc = gl.getUniformLocation(pg, "sc");
+
+    let mx=.5, my=.5, smx=.5, smy=.5, svx=0, svy=0, el=0, last=performance.now(), raf;
+
+    const onMv = e => {
+      mx = e.clientX / window.innerWidth;
+      my = 1 - e.clientY / window.innerHeight;
+    };
+    document.addEventListener("mousemove", onMv, { passive: true });
+
+    const loop = ts => {
+      const dt = Math.min((ts - last) * .001, .05);
+      last = ts; el += dt;
+      const lf = 1 - Math.pow(.04, dt * 60);
+      smx += (mx - smx) * lf; smy += (my - smy) * lf;
+      svx += (mx - smx) * 8 * lf - svx * lf;
+      svy += (my - smy) * 8 * lf - svy * lf;
+      gl.uniform1f(uT, el);
+      gl.uniform2f(uM, smx, smy);
+      gl.uniform1f(uVX, svx);
+      gl.uniform1f(uVY, svy);
+      gl.uniform1f(uSc, window.scrollY);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("mousemove", onMv);
+      window.removeEventListener("resize", resize);
+    };
   }, []);
 
-  const handleSmoothScroll = (e, href) => {
-    if (href.startsWith('#')) {
-      e.preventDefault();
-      const target = document.querySelector(href);
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        setMobileMenuOpen(false);
-      }
-    }
-  };
+  return <canvas ref={ref} className="bg-cv" />;
+}
 
+/* ═══════════ LENIS SMOOTH SCROLL ═══════════════════════════ */
+function useLenis(cb) {
+  useEffect(() => {
+    let cleanup;
+    (async () => {
+      try {
+        let L;
+        try { L = (await import("lenis")).default; }
+        catch { L = (await import("@studio-freight/lenis")).default; }
+
+        const lenis = new L({
+          duration: 1.15,
+          easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+        });
+
+        lenis.on("scroll", ({ scroll }) => {
+          cb?.(scroll);
+          ScrollTrigger.update();
+        });
+
+        // CRITICAL: GSAP ticker gives seconds, Lenis needs milliseconds
+        const tick = time => lenis.raf(time * 1000);
+        gsap.ticker.add(tick);
+        gsap.ticker.lagSmoothing(0);
+
+        cleanup = () => { lenis.destroy(); gsap.ticker.remove(tick); };
+      } catch (e) {
+        const fn = () => { cb?.(window.scrollY); };
+        window.addEventListener("scroll", fn, { passive: true });
+        cleanup = () => window.removeEventListener("scroll", fn);
+      }
+    })();
+    return () => cleanup?.();
+  }, [cb]);
+}
+
+/* ═══════════ GSAP SCROLL ANIMATIONS ════════════════════════ */
+function useAnims(ready) {
+  useEffect(() => {
+    if (!ready) return;
+    const t = setTimeout(() => {
+      // Per-character heading reveal — no external dep needed
+      document.querySelectorAll("[data-split]").forEach(el => {
+        el.innerHTML = el.textContent.split("").map(c =>
+          c === " "
+            ? `<span style="display:inline-block;width:.28em"> </span>`
+            : `<span style="display:inline-block;overflow:hidden;vertical-align:top"><b style="display:block;transform:translateY(115%);font-weight:inherit">${c}</b></span>`
+        ).join("");
+        ScrollTrigger.create({
+          trigger: el, start: "top 88%", once: true,
+          onEnter: () => gsap.to(el.querySelectorAll("b"), {
+            y: 0, duration: .9, ease: "expo.out", stagger: .025,
+          }),
+        });
+      });
+
+      // Card reveals
+      gsap.utils.toArray(".anim-card").forEach((c, i) => {
+        gsap.from(c, {
+          opacity: 0, y: 50, duration: .85, ease: "power3.out", delay: i * .07,
+          scrollTrigger: { trigger: c, start: "top 87%", once: true },
+        });
+      });
+
+      // Timeline items
+      gsap.utils.toArray(".tl-item").forEach((item, i) => {
+        gsap.from(item, {
+          opacity: 0, x: -28, duration: .8, ease: "power3.out", delay: i * .1,
+          scrollTrigger: { trigger: item, start: "top 86%", once: true },
+          onComplete() { item.classList.add("in"); },
+        });
+      });
+
+      // About text
+      gsap.from(".about-p", {
+        opacity: 0, y: 22, stagger: .1, duration: .8, ease: "power3.out",
+        scrollTrigger: { trigger: ".about-ps", start: "top 82%", once: true },
+      });
+
+      // Cert cards
+      gsap.from(".cert", {
+        opacity: 0, x: 22, stagger: .09, duration: .7, ease: "power3.out",
+        scrollTrigger: { trigger: ".certs", start: "top 82%", once: true },
+      });
+
+      // Stat counters
+      document.querySelectorAll("[data-cnt]").forEach(el => {
+        const v = +el.dataset.cnt, sx = el.dataset.sx || "";
+        gsap.to({ n: 0 }, {
+          n: v, duration: 2.2, ease: "power2.out", delay: .1,
+          onUpdate() { el.textContent = Math.round(this.targets()[0].n) + sx; },
+        });
+      });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [ready]);
+}
+
+/* ═══════════ CURSOR ═════════════════════════════════════════ */
+function Cursor() {
+  const dot = useRef(null), ring = useRef(null);
+  useEffect(() => {
+    let cx=0, cy=0, rx=0, ry=0, raf;
+    const mv = e => { cx = e.clientX; cy = e.clientY; };
+    const dn = () => document.body.classList.add("cdn");
+    const up = () => document.body.classList.remove("cdn");
+    const tick = () => {
+      rx += (cx - rx) * .11; ry += (cy - ry) * .11;
+      if (dot.current)  dot.current.style.cssText  = `left:${cx}px;top:${cy}px`;
+      if (ring.current) ring.current.style.cssText = `left:${rx}px;top:${ry}px`;
+      raf = requestAnimationFrame(tick);
+    };
+    document.addEventListener("mousemove", mv, { passive: true });
+    document.addEventListener("mousedown", dn);
+    document.addEventListener("mouseup", up);
+    raf = requestAnimationFrame(tick);
+    setTimeout(() => {
+      document.querySelectorAll("a,button").forEach(el => {
+        el.addEventListener("mouseenter", () => document.body.classList.add("chv"));
+        el.addEventListener("mouseleave", () => document.body.classList.remove("chv"));
+      });
+    }, 900);
+    return () => {
+      document.removeEventListener("mousemove", mv);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
   return (
     <>
-      {/* Subtle motion: reduced intensity for performance */}
-      <ClickSpark
-        sparkColor="#6366f1"
-        sparkSize={8}
-        sparkRadius={18}
-        sparkCount={8}
-        duration={380}
-        easing="ease-out"
-        extraScale={1.0}
-        ariaLabel="Interactive spark effect"
-      >
-        <Galaxy 
-          ariaLabel="Background starfield animation"
-          focal={[0.5, 0.5]}
-          rotation={[0.6, 0.0]}
-          starSpeed={0.35}
-          density={0.8}
-          hueShift={120}
-          speed={0.8}
-          mouseInteraction={true}
-          glowIntensity={0.35}
-          saturation={0.25}
-          mouseRepulsion={true}
-          repulsionStrength={1.5}
-          twinkleIntensity={0.22}
-          rotationSpeed={0.03}
-          transparent={true}
-        />
-      </ClickSpark>
-
-      {/* Navigation */}
-      <PillNav
-        logo="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='70' font-size='60' font-weight='bold' fill='%23ffffff'%3EMS%3C/text%3E%3C/svg%3E"
-        logoAlt="Mayank Sharma"
-        items={[
-          { href: '#about', label: 'About' },
-          { href: '#services', label: 'Services' },
-          { href: '#innovations', label: 'Innovations' },
-          { href: '#projects', label: 'Projects' },
-          { href: '#testimonials', label: 'Testimonials' },
-          { href: '#contact', label: 'Contact' }
-        ]}
-        baseColor="#ffffff"
-        pillColor="#000000"
-        hoveredPillTextColor="#ffffff"
-        onMobileMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-      />
-
-      <div className="content-wrapper">
-        {/* Hero Section */}
-        <section id="hero" className="hero">
-          <div className="container">
-            <div className="hero-content">
-              <div className="hero-badge">AI Engineer & Data Scientist · Secure & Explainable Intelligence</div>
-              <h1 className="hero-title">
-                Mayank Sharma – AI Engineer & Data Scientist
-              </h1>
-              <p className="hero-subtitle">IIT Jodhpur · AI & Data Engineering</p>
-              <div className="hero-buttons">
-                <a
-                  href="#projects"
-                  className="btn-primary"
-                  onClick={(e) => handleSmoothScroll(e, '#projects')}
-                >
-                  View Projects
-                </a>
-                <a
-                  href="/resume-ms.pdf"
-                  className="btn-secondary"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Resume
-                </a>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Proof Section */}
-        <section id="proof" className="proof">
-          <div className="container">
-            <h2 className="section-title">Proof of Expertise</h2>
-            <p className="section-description">Selected metrics, links, and artifacts demonstrating reliability and impact.</p>
-            <div className="proof-grid">
-              <div className="proof-item"><strong>0.86 AUC</strong> – Calibrated churn model with interpretable drivers.</div>
-              <div className="proof-item"><strong>80% risk reduction</strong> – JWT misconfig escalation path closed.</div>
-              <div className="proof-item"><strong>Production demos</strong> – Live apps with guardrails and monitoring.</div>
-            </div>
-            <div className="hero-buttons">
-              <a href="/projects" className="btn-primary">View Case Studies</a>
-              <a href="/blog" className="btn-secondary">Read Engineering Notes</a>
-            </div>
-          </div>
-        </section>
-
-        {/* About Section */}
-        <section id="about" className="about">
-          <div className="container">
-            <h2 className="section-title" style={{ marginBottom: '1.5rem' }}>About</h2>
-            <div style={{ height: '120px', marginBottom: '2rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <div style={{ textAlign: 'center' }}>
-                <h2
-                  className="home-name"
-                  style={{ margin: 0, lineHeight: 1 }}
-                  aria-label="Mayank Sharma"
-                >
-                  MAYANK SHARMA
-                </h2>
-                <h2
-                  className="home-role"
-                  style={{ marginTop: '0.5rem', fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-secondary)' }}
-                >
-                  AI &amp; Data Systems Engineer · IIT Jodhpur
-                </h2>
-              </div>
-            </div>
-            <div className="about-text about-intro">
-              <div className="about-text">
-                <p>I build secure, explainable AI and data systems that convert raw signals into decision-ready insights. My work blends theory with implementation—covering model design, evalua[...]
-                <p>I enjoy translating research into deployable, interpretable products: from expert systems and NLP utilities to security analyses like JWT hardening. Outcome-first, with guardra[...]
-              </div>
-              <div className="pill-row">
-                <span className="pill">Secure &amp; explainable AI</span>
-                <span className="pill">Data pipelines to decisions</span>
-                <span className="pill">Responsible disclosure mindset</span>
-              </div>
-              <div className="skills-carousel">
-                <LogoLoop 
-                  logos={skillLogos}
-                  speed={50}
-                  direction="left"
-                  logoHeight={40}
-                  gap={40}
-                  pauseOnHover={true}
-                  fadeOut={true}
-                  scaleOnHover={true}
-                  ariaLabel="Skills and Technologies"
-                />
-              </div>
-            </div>
-            <div className="experience-timeline">
-              <MagicBento
-                textAutoHide={true}
-                enableStars={true}
-                enableSpotlight={true}
-                enableBorderGlow={true}
-                disableAnimations={false}
-                spotlightRadius={300}
-                particleCount={12}
-                enableTilt={false}
-                glowColor="132, 0, 255"
-                clickEffect={true}
-                enableMagnetism={true}
-              />
-            </div>
-            <div className="foundations">
-              <h3>Foundations</h3>
-              <p className="section-description" style={{ marginBottom: '1.5rem' }}>Grounded in algorithms and reasoning that make systems reliable.</p>
-              <div className="pill-row">
-                <span className="pill">Optimization Techniques</span>
-                <span className="pill">Game Theory</span>
-                <span className="pill">Search &amp; Heuristics</span>
-                <span className="pill">Knowledge Representation</span>
-                <span className="pill">Bayesian Reasoning</span>
-              </div>
-            </div>
-            <div className="social-links">
-              <a href="https://github.com/mayank-iitj" target="_blank" rel="noopener noreferrer">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.7[...]"
-              </a>
-            </div>
-          </div>
-        </section>
-
-        {/* Recent Works */}
-        <TiltedCard 
-          imageSrc={'/picsuit.jpg'}
-          altText="Mayank Sharma Portrait"
-          captionText="Mayank Sharma"
-          containerHeight="360px"
-          imageHeight="360px"
-          imageWidth="360px"
-          scaleOnHover={1.08}
-          rotateAmplitude={16}
-          showMobileWarning={false}
-          showTooltip={true}
-          displayOverlayContent={true}
-          overlayContent={<div style={{position:'absolute',inset:0,background:'linear-gradient(140deg, rgba(0,0,0,0.2), rgba(0,0,0,0.55))', mixBlendMode:'overlay'}}/>}
-        />
-        <section id="projects" className="projects">
-          <div className="container">
-            <h2 className="section-subtitle">Impactful Projects</h2>
-            <p className="section-description">Each project is framed with problem, why it matters, approach, tools, outcome, and key learning.</p>
-            <div className="featured-cases">
-              <article className="case">
-                <h3>JWT Authentication Vulnerability Analysis</h3>
-                <p>Problem: HS256 misconfiguration enabled token forgery. Approach: middleware audit, signature verification, secret rotation. Result: 80% risk reduction with documented guardrail[...]
-                <div className="case-ctas"><a href="/projects/jwt-auth-vulnerability" className="btn-secondary">Read case study</a></div>
-              </article>
-              <article className="case">
-                <h3>Customer Churn Prediction</h3>
-                <p>Problem: Target retention with calibrated probabilities. Approach: feature engineering, calibrated classifier, interpretability. Result: AUC 0.86, actionable drivers for retent[...]
-                <div className="case-ctas"><a href="/projects/customer-churn-prediction" className="btn-secondary">Read case study</a></div>
-              </article>
-              <article className="case">
-                <h3>Named Entity Linking (NEL)</h3>
-                <p>Problem: Accurate mapping to KB entries. Approach: candidate generation and ranking. Result: high precision with transparent examples and evaluation.</p>
-                <div className="case-ctas"><a href="/projects/named-entity-linking" className="btn-secondary">Read case study</a></div>
-              </article>
-            </div>
-          </div>
-        </section>
-
-        {/* Gallery Section */}
-        <section id="gallery" className="gallery-section">
-          <div className="container">
-            <h2 className="section-title">Project Gallery</h2>
-            <p className="section-description">Explore AI, data, and security builds with transparent narratives.</p>
-            <div className="project-framework">
-              <h3>How I present work</h3>
-              <ul>
-                <li>Problem &amp; why it matters</li>
-                <li>Approach &amp; tools</li>
-                <li>Outcome (metrics/insight) &amp; key learning</li>
-              </ul>
-            </div>
-            </div>
-            <InfiniteMenu 
-              items={projectItems.map(p => ({
-                image: 'https://picsum.photos/seed/' + encodeURIComponent(p.title.toLowerCase().replace(/\s+/g,'-')) + '/800/600?grayscale',
-                title: p.title,
-                description: p.description,
-                link: p.url,
-                alt: `${p.title} project thumbnail`
-              }))}
-            />
-          </section>
-
-        {/* Resume Section intentionally removed; opens via View Resume in new tab */}
-        <section id="ctas" className="ctas-section">
-          <div className="container">
-            <h2 className="section-title">Get in Touch</h2>
-            <p>For collaborations, research, or engineering roles, reach out via the contact page or connect on LinkedIn.</p>
-            <div className="hero-buttons">
-              <a href="/contact" className="btn-primary">Contact</a>
-              <a href="/privacy" className="btn-secondary">Privacy Policy</a>
-            </div>
-          </div>
-        </section>
-
-        {/* Innovations Section */}
-        <section id="innovations" className="innovations-section">
-          <div className="container">
-            <h2 className="section-title">Innovations: AI, Data, Security</h2>
-            <p className="section-description">Selected ML/NLP utilities and security experiments with quick links.</p>
-            <div style={{ display: 'grid', placeItems: 'center', width: '100%', overflow: 'hidden' }}>
-              <Carousel
-                baseWidth={340}
-                loop={true}
-                autoplay={true}
-                pauseOnHover={true}
-                items={[
-                  {
-                    id: 1,
-                    title: 'Loan Approval Prediction',
-                    description: 'Python • Predictive modeling for loan eligibility',
-                    url: 'https://loanapproval-ms.streamlit.app/',
-                    icon: <svg className="carousel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0[...]/>
-                  },
-                  {
-                    id: 2,
-                    title: 'imagine',
-                    description: 'Python • Face & emotion recognition',
-                    url: 'https://github.com/Mayank-iitj/imagine',
-                    icon: <svg className="carousel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12"[...]/>
-                  },
-                  {
-                    id: 3,
-                    title: 'virtualmouse',
-                    description: 'Python • Hand-tracking virtual mouse',
-                    url: 'https://github.com/Mayank-iitj/virtualmouse',
-                    icon: <svg className="carousel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="2" width[...]/>
-                  },
-                  {
-                    id: 4,
-                    title: 'customer-churn-prediction',
-                    description: 'Python • Streamlit app (live)',
-                    url: 'https://customer-churn-ms.streamlit.app/',
-                    icon: <svg className="carousel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/>
-                  },
-                  {
-                    id: 5,
-                    title: 'FakeReview',
-                    description: 'Python • Fake review detection (live)',
-                    url: 'https://fakereview-ms.streamlit.app/',
-                    icon: <svg className="carousel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0[...]/>
-                  }
-                ]}
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Process Section */}
-        <section id="process" className="process">
-          <div className="container">
-            <h2 className="section-title">Process: From Data to Decisions</h2>
-            <p className="section-description">From problem framing to secure, explainable delivery. Outcome-first, with guardrails.</p>
-            <div className="process-buttons">
-              <a href="https://github.com/Mayank-iitj" className="btn-secondary" target="_blank" rel="noopener noreferrer">Github</a>
-              <a href="https://github.com/Mayank-iitj" className="btn-secondary" target="_blank" rel="noopener noreferrer">See Projects</a>
-            </div>
-            <div className="process-steps">
-              <GlareHover width="100%" height="100%" background="transparent" borderRadius="30px" borderColor="var(--border-color)" glareColor="#6366f1" glareOpacity={0.3}>
-                <div className="step-card">
-                  <div className="step-number">1</div>
-                  <h3>Frame the problem</h3>
-                  <p>Clarify the real-world problem, success metrics, constraints, and the security/ethics boundaries before shipping anything.</p>
-                </div>
-              </GlareHover>
-              <GlareHover width="100%" height="100%" background="transparent" borderRadius="30px" borderColor="var(--border-color)" glareColor="#6366f1" glareOpacity={0.3}>
-                <div className="step-card">
-                  <div className="step-number">2</div>
-                  <h3>Build &amp; validate</h3>
-                  <p>Design data pipelines and models; validate with evaluation plans, ablations, and explainability to keep stakeholders in the loop.</p>
-                </div>
-              </GlareHover>
-              <GlareHover width="100%" height="100%" background="transparent" borderRadius="30px" borderColor="var(--border-color)" glareColor="#6366f1" glareOpacity={0.3}>
-                <div className="step-card">
-                  <div className="step-number">3</div>
-                  <h3>Ship with guardrails</h3>
-                  <p>Deploy with documentation, security hardening, and clear learnings so the system can be trusted and iterated safely.</p>
-                </div>
-              </GlareHover>
-            </div>
-          </div>
-        </section>
-
-        {/* Services Section */}
-        <section id="services" className="services">
-          <div className="container">
-            <h2 className="section-title">Services: AI, Data, Security</h2>
-            <p className="section-description">AI, data, and security work that ships with clarity and explainability.</p>
-            <div className="services-grid">
-              <GlareHover width="auto" height="auto" background="transparent" borderRadius="50px" borderColor="var(--border-color)" glareColor="#8b5cf6" glareOpacity={0.35}>
-                <div className="service-card">AI &amp; Data Engineering</div>
-              </GlareHover>
-              <GlareHover width="auto" height="auto" background="transparent" borderRadius="50px" borderColor="var(--border-color)" glareColor="#8b5cf6" glareOpacity={0.35}>
-                <div className="service-card">Modeling &amp; Evaluation</div>
-              </GlareHover>
-              <GlareHover width="auto" height="auto" background="transparent" borderRadius="50px" borderColor="var(--border-color)" glareColor="#8b5cf6" glareOpacity={0.35}>
-                <div className="service-card">NLP (NER/Transformers)</div>
-              </GlareHover>
-              <GlareHover width="auto" height="auto" background="transparent" borderRadius="50px" borderColor="var(--border-color)" glareColor="#8b5cf6" glareOpacity={0.35}>
-                <div className="service-card">Security Reviews (JWT/API)</div>
-              </GlareHover>
-              <GlareHover width="auto" height="auto" background="transparent" borderRadius="50px" borderColor="var(--border-color)" glareColor="#8b5cf6" glareOpacity={0.35}>
-                <div className="service-card">Dashboards &amp; Reporting</div>
-              </GlareHover>
-            </div>
-            <div className="services-buttons">
-              <a href="https://instagram.com/mayyanks" className="btn-secondary" target="_blank" rel="noopener noreferrer">Instagram</a>
-              <a href="https://github.com/Mayank-iitj" className="btn-secondary" target="_blank" rel="noopener noreferrer">See Projects</a>
-            </div>
-            <div className="services-list">
-              <div className="services-column">
-                <GlareHover width="100%" height="auto" background="transparent" borderRadius="20px" borderColor="var(--border-color)" glareColor="#6366f1" glareOpacity={0.4}>
-                  <div className="service-item-large">Model Evaluation &amp; Monitoring</div>
-                </GlareHover>
-                <GlareHover width="100%" height="auto" background="transparent" borderRadius="20px" borderColor="var(--border-color)" glareColor="#6366f1" glareOpacity={0.4}>
-                  <div className="service-item-large">MLOps Pipelines</div>
-                </GlareHover>
-              </div>
-              <div className="services-column">
-                <GlareHover width="100%" height="auto" background="transparent" borderRadius="20px" borderColor="var(--border-color)" glareColor="#6366f1" glareOpacity={0.4}>
-                  <div className="service-item-large">LLM Guardrails &amp; Prompting</div>
-                </GlareHover>
-                <GlareHover width="100%" height="auto" background="transparent" borderRadius="20px" borderColor="var(--border-color)" glareColor="#6366f1" glareOpacity={0.4}>
-                  <div className="service-item-large">Security &amp; Risk Reviews</div>
-                </GlareHover>
-              </div>
-            </div>
-            <div className="services-tags">
-              <span className="tag">Evaluation Plans</span>
-              <span className="tag">Explainability</span>
-              <span className="tag">Data Quality</span>
-              <span className="tag">Security Hardening</span>
-              <span className="tag">Streamlit</span>
-              <span className="tag">Tableau</span>
-              <span className="tag">LLM Guardrails</span>
-              <span className="tag">Prompt Engineering</span>
-              <span className="tag">Observability</span>
-              <span className="tag">Ablations</span>
-              <span className="tag">Responsible Disclosure</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Reviews Section */}
-        <section id="testimonials" className="reviews">
-          <div className="container">
-            <h2 className="section-title">Client Reviews & Outcomes</h2>
-            <p className="section-description">Real feedback from clients who trusted my design expertise to elevate their brands successfully.</p>
-            <div className="review-buttons">
-              <a href="https://www.linkedin.com/in/mayankiitj" className="btn-primary" target="_blank" rel="noopener noreferrer">Book a Free Call</a>
-              <a href="#services" className="btn-secondary" onClick={(e) => handleSmoothScroll(e, '#services')}>See Services</a>
-            </div>
-            <div className="reviews-grid">
-              <GlareHover width="100%" height="100%" background="transparent" borderRadius="30px" borderColor="var(--border-color)" glareColor="#fbbf24" glareOpacity={0.25}>
-                <div className="review-card">
-                  <img src="https://framerusercontent.com/images/GTWhJyJde9nAeuMXqgYJh6jQhrU.jpg?scale-down-to-1024&width=800&height=1200" alt="Richards Johnson" />
-                  <h3>Richards Johnson</h3>
-                  <p className="review-title">Creative Director & Lead Designer</p>
-                  <div className="rating">
-                    <span>5.0</span>
-                    <div className="stars">★★★★★</div>
-                  </div>
-                </div>
-              </GlareHover>
-              <GlareHover width="100%" height="100%" background="transparent" borderRadius="30px" borderColor="var(--border-color)" glareColor="#fbbf24" glareOpacity={0.25}>
-                <div className="review-card">
-                  <img src="https://framerusercontent.com/images/c5E9pkEhKO6BmnqFuXLWa9Xqw34.png?scale-down-to-1024&width=904&height=1200" alt="June Lee" />
-                  <h3>June Lee</h3>
-                  <p className="review-title">CEO of GreenRoots</p>
-                  <div className="rating">
-                    <span>5.0</span>
-                    <div className="stars">★★★★★</div>
-                  </div>
-                </div>
-              </GlareHover>
-              <GlareHover width="100%" height="100%" background="transparent" borderRadius="30px" borderColor="var(--border-color)" glareColor="#fbbf24" glareOpacity={0.25}>
-                <div className="review-card">
-                  <img src="https://framerusercontent.com/images/hSbSnYWGLq3elsCJfJAmFGgQZOc.png?scale-down-to-512&width=1200&height=904" alt="Jona Carter" />
-                  <h3>Jona Carter</h3>
-                  <p className="review-title">Founder of EcoLux</p>
-                  <div className="rating">
-                    <span>5.0</span>
-                    <div className="stars">★★★★★</div>
-                  </div>
-                </div>
-              </GlareHover>
-              <GlareHover width="100%" height="100%" background="transparent" borderRadius="30px" borderColor="var(--border-color)" glareColor="#fbbf24" glareOpacity={0.25}>
-                <div className="review-card">
-                  <img src="https://framerusercontent.com/images/VG4Ga2U7ZktrC75M3Vg8eUynj4M.png?scale-down-to-512&width=600&height=600" alt="Sofia Toms" />
-                  <h3>Sofia Toms</h3>
-                  <p className="review-title">Founder at GreenK Studios</p>
-                  <div className="rating">
-                    <span>5.0</span>
-                    <div className="stars">★★★★★</div>
-                  </div>
-                </div>
-              </GlareHover>
-            </div>
-            <div className="stats">
-              <div className="stat-item">
-                <h3>180+</h3>
-                <p>design projects completed.</p>
-              </div>
-              <div className="stat-item">
-                <h3>96%</h3>
-                <p>Client satisfaction rate.</p>
-              </div>
-              <div className="stat-item">
-                <h3>15+ Months</h3>
-                <p>Months of experience</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* FAQ Section */}
-        {/* FAQ Section removed per request */}
-
-        {/* CTA Section */}
-        <section id="contact" className="cta">
-          <div className="container">
-            <h2>Need secure, explainable AI or data systems? Let's design and ship them responsibly.</h2>
-            <div className="cta-buttons">
-              <a href="https://www.linkedin.com/in/mayankiitj" className="btn-primary" target="_blank" rel="noopener noreferrer">Book a Free Call</a>
-            </div>
-            <div className="cta-social">
-              <a href="https://instagram.com/mayyanks" target="_blank" rel="noopener noreferrer">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 [...]/>
-              </a>
-              <a href="https://x.com/mayyankks/" target="_blank" rel="noopener noreferrer">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.[...]/>
-              </a>
-              <a href="https://github.com/Mayank-iitj" target="_blank" rel="noopener noreferrer">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.[...]/>
-              </a>
-              <a href="https://www.linkedin.com/in/mayankiitj" target="_blank" rel="noopener noreferrer">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.35[...]/>
-              </a>
-            </div>
-            <p className="cta-email">ms1591934@gmail.com</p>
-            <p className="cta-email">admin@mayyanks.app</p>
-          </div>
-        </section>
-      </div>
-
-      <footer className="site-footer">
-        <div className="container footer-grid">
-          <div>
-            <strong>Mayank Sharma</strong> – AI Engineer & Data Scientist
-            <div>IIT Jodhpur</div>
-          </div>
-          <div className="footer-links">
-            <a href="https://github.com/mayank-iitj" target="_blank" rel="noopener noreferrer">GitHub</a>
-            <a href="https://www.linkedin.com/in/mayankiitj" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-            <a href="/projects">Projects</a>
-            <a href="/blog">Blog</a>
-            <a href="/contact">Contact</a>
-            <a href="/privacy">Privacy</a>
-          </div>
-        </div>
-      </footer>
-
-      <Dock
-        items={[
-          { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>, label: 'About', onClick: () => document.querySelector('#about[...]'},
-          { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 [...]/>, label: 'Services', onClick: () => document.querySelector('#services[...]'},
-          { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zm-11-4l2.03 2.71L16 11l4 5H8l3[...]'/>, label: 'Projects', onClick: () => document.querySelector('#projects[...]'},
-          { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L[...]/>, label: '[...]', onClick: () => {}},
-          { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>, label: '[...]', onClick: () => {}},
-          { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.[...]/>, label: '[...]', onClick: () => {}},
-          { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v[...]'/>, label: '[...]', onClick: () => {}},
-        ]}
-        magnification={70}
-        distance={200}
-        panelHeight={68}
-        baseItemSize={50}
-      />
+      <div ref={dot}  className="cdot" />
+      <div ref={ring} className="cring" />
     </>
   );
 }
 
-export default App;
+/* ═══════════ LOADER ═════════════════════════════════════════ */
+function Loader({ onDone }) {
+  const bar = useRef(null), pct = useRef(null), el = useRef(null);
+  useEffect(() => {
+    let p = 0;
+    const id = setInterval(() => {
+      p += Math.random() * 14 + 4;
+      if (p >= 100) {
+        p = 100;
+        clearInterval(id);
+        if (bar.current) bar.current.style.width = "100%";
+        if (pct.current) pct.current.textContent = "100%";
+        setTimeout(() => {
+          el.current?.classList.add("done");
+          setTimeout(onDone, 750);
+        }, 280);
+        return;
+      }
+      if (bar.current) bar.current.style.width = p + "%";
+      if (pct.current) pct.current.textContent = Math.floor(p) + "%";
+    }, 75);
+    return () => clearInterval(id);
+  }, [onDone]);
+  return (
+    <div ref={el} className="loader">
+      <div className="lname">RITHVIK</div>
+      <div className="ltrack"><div ref={bar} className="lbar" /></div>
+      <div ref={pct} className="lpct">0%</div>
+    </div>
+  );
+}
+
+/* ═══════════ NAV ════════════════════════════════════════════ */
+function Nav() {
+  const [sc, setSc] = useState(false);
+  useEffect(() => {
+    const f = () => setSc(window.scrollY > 55);
+    window.addEventListener("scroll", f, { passive: true });
+    return () => window.removeEventListener("scroll", f);
+  }, []);
+  return (
+    <nav className={sc ? "nav nav-sc" : "nav"}>
+      <a href="#hero" className="nlogo"><span className="ndim">~/ </span>rithvik.dev</a>
+      <ul className="nlinks">
+        {NAV.map(s => <li key={s}><a href={"#" + s}>{s}</a></li>)}
+      </ul>
+      <div className="nr">
+        <span className="avail"><span className="adot" />Available Jun 2026</span>
+        <a href="#contact" className="ncta">Hire Me</a>
+      </div>
+    </nav>
+  );
+}
+
+/* ═══════════ MAGNETIC BUTTON ════════════════════════════════ */
+function Btn({ href, primary, children }) {
+  const r = useRef(null);
+  const mv = e => {
+    if (!r.current) return;
+    const rc = r.current.getBoundingClientRect();
+    r.current.style.transform =
+      `translate(${(e.clientX - rc.left - rc.width  / 2) * .28}px,` +
+               `${(e.clientY - rc.top  - rc.height / 2) * .28}px)`;
+  };
+  const lv = () => {
+    if (!r.current) return;
+    r.current.style.transition = "transform .5s cubic-bezier(.16,1,.3,1)";
+    r.current.style.transform = "";
+    setTimeout(() => { if (r.current) r.current.style.transition = ""; }, 500);
+  };
+  return (
+    <a href={href} ref={r} onMouseMove={mv} onMouseLeave={lv}
+       className={`btn${primary ? " btnp" : ""}`}>
+      {primary && <span className="bfill" />}
+      <span className="btxt">{children}</span>
+    </a>
+  );
+}
+
+/* ═══════════ HERO ═══════════════════════════════════════════ */
+function Hero({ ready, sy }) {
+  const [up, setUp] = useState(false);
+  const tr = useRef(null);
+  useEffect(() => { if (ready) setTimeout(() => setUp(true), 100); }, [ready]);
+  useEffect(() => {
+    if (tr.current) tr.current.style.transform = `translateY(${sy * .15}px)`;
+  }, [sy]);
+  return (
+    <section id="hero" className="hero">
+      <div className={`hey${up ? " up" : ""}`}>
+        <span className="heyln" />
+        Software Engineer · MS CS @ University at Buffalo
+      </div>
+      <h1 ref={tr} className="htitle">
+        <span className="hw"><span className={`hl1${up ? " up" : ""}`}>SRI SAI</span></span>
+        <span className="hw"><span className={`hl2${up ? " up" : ""}`}>RITHVIK</span></span>
+      </h1>
+      <p className={`hsub${up ? " up" : ""}`} style={{ transitionDelay: ".38s" }}>
+        Backend engineer &amp; distributed systems architect.<br />
+        Pipelines processing <em>8TB+/day</em>, APIs at <em>500+ QPS</em>,<br />
+        systems delivering <em>9x speedups</em>.
+      </p>
+      <div className={`hact${up ? " up" : ""}`} style={{ transitionDelay: ".52s" }}>
+        <Btn href="#projects" primary>View Work</Btn>
+        <Btn href="#contact">Get In Touch</Btn>
+      </div>
+      <div className={`hstats${up ? " up" : ""}`} style={{ transitionDelay: ".68s" }}>
+        {[[2,"+","Years Exp"],[8,"TB","Daily Volume"],[500,"+","QPS"],[9,"x","Max Speedup"]].map(([v,s,l]) => (
+          <div key={l} className="hstat">
+            <div className="hstatv" data-cnt={v} data-sx={s}>0{s}</div>
+            <div className="hstatl">{l}</div>
+          </div>
+        ))}
+      </div>
+      <div className="shint"><div className="sln" /><span>Scroll</span></div>
+    </section>
+  );
+}
+
+/* ═══════════ ABOUT ══════════════════════════════════════════ */
+function About() {
+  return (
+    <section id="about" className="sec sdk">
+      <div className="sey">00 — About</div>
+      <div className="agrid">
+        <div>
+          <h2 className="sh" data-split>Engineer. Architect. Builder.</h2>
+          <div className="about-ps">
+            <p className="about-p">MS Computer Science at <em>University at Buffalo</em>, graduating June 2026. Two years of production experience across distributed systems, real-time data pipelines, and cloud-native APIs.</p>
+            <p className="about-p">I specialize at the <em>intersection of backend engineering and data infrastructure</em> — systems that handle millions of events, serve sub-second queries, and scale horizontally without drama.</p>
+            <p className="about-p">Buffalo, NY · Open to relocation · <em>(716)-415-0990</em></p>
+          </div>
+        </div>
+        <div className="certs">
+          {CERTS.map(c => (
+            <div key={c.b} className="cert anim-card">
+              <div className="certb">{c.b}</div>
+              <div>
+                <div className="certn">{c.n}</div>
+                <div className="certs2">{c.s}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════ SKILLS ═════════════════════════════════════════ */
+function Skills() {
+  const glow = e => {
+    const r = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty("--mx", ((e.clientX - r.left) / r.width  * 100) + "%");
+    e.currentTarget.style.setProperty("--my", ((e.clientY - r.top)  / r.height * 100) + "%");
+  };
+  return (
+    <section id="skills" className="sec">
+      <div className="sey">01 — Stack</div>
+      <h2 className="sh" data-split>Core Systems</h2>
+      <div className="sgrid">
+        {SKILLS.map(sk => (
+          <div key={sk.n} className="scard anim-card" onMouseMove={glow}>
+            <div className="snum">{`// ${sk.n}`}</div>
+            <div className="scat">{sk.cat}</div>
+            <div className="stags">
+              {sk.tags.map(t => <span key={t} className="stag">{t}</span>)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════ PROJECTS ═══════════════════════════════════════ */
+function Projects() {
+  return (
+    <section id="projects" className="sec sdk">
+      <div className="sey">02 — Work</div>
+      <h2 className="sh" data-split>Selected Projects</h2>
+      <div className="plist">
+        {PROJECTS.map(p => (
+          <div key={p.n} className={`pcard anim-card${p.ft ? " pft" : ""}`}>
+            <div className="pacc" style={{ background: `linear-gradient(180deg,${p.color},transparent)` }} />
+            <div className="pnum" style={{ color: p.color + "18" }}>{p.n}</div>
+            <div className="pbody">
+              <div className="ptag" style={{ color: p.color }}>{p.tag}</div>
+              <h3 className={`ptitle${p.ft ? " pftitle" : ""}`}>{p.title}</h3>
+              <p className="pdesc">{p.desc}</p>
+              <div className="pstack">
+                {p.stack.map(t => <span key={t} className="ptech" style={{ borderColor: p.color + "55", color: p.color }}>{t}</span>)}
+              </div>
+              <div className="pstats">
+                {p.stats.map(([v, l]) => (
+                  <div key={l} className="pst">
+                    <span className="pstv" style={{ color: p.color }}>{v}</span>
+                    <span className="pstl">{l}</span>
+                  </div>
+                ))}
+              </div>
+              <a href={p.url} target="_blank" rel="noopener noreferrer"
+                 className="plink" style={{ "--lc": p.color }}>GitHub</a>
+            </div>
+            <div className="parr">↗</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════ EXPERIENCE ═════════════════════════════════════ */
+function Experience() {
+  return (
+    <section id="experience" className="sec">
+      <div className="sey">03 — Experience</div>
+      <h2 className="sh" data-split>Work History</h2>
+      <div className="tl">
+        {EXP.map((e, i) => (
+          <div key={i} className="tl-item">
+            <div className="tldot" />
+            <div>
+              <div className="tldate">{e.period}</div>
+              <div className="tlrole">{e.role}</div>
+              <div className="tlco">{e.co} — {e.loc}</div>
+              <ul className="tlpts">
+                {e.pts.map((p, j) => <li key={j}>{p}</li>)}
+              </ul>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════ PUBLICATIONS ══════════════════════════════════ */
+function Publications() {
+  return (
+    <section id="publications" className="sec sdk">
+      <div className="sey">04 — Research</div>
+      <h2 className="sh" data-split>Publications</h2>
+      <div className="pub-list">
+        {PUBS.map((p, i) => (
+          <div key={i} className="pub-card anim-card">
+            <div className="pub-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10,9 9,9 8,9"/>
+              </svg>
+            </div>
+            <div className="pub-body">
+              <div className="pub-label">Peer-Reviewed Research</div>
+              <h3 className="pub-title">{p.title}</h3>
+              <ul className="pub-pts">
+                {p.pts.map((pt, j) => <li key={j}>{pt}</li>)}
+              </ul>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════ CONTACT ════════════════════════════════════════ */
+function Contact() {
+  return (
+    <section id="contact" className="sec sdk contact">
+      <h2 className="cbig" data-split>LETS WORK TOGETHER</h2>
+      <p className="csub anim-card">Open to SDE · Data Engineering · Backend Infrastructure</p>
+      <a href="mailto:srisairithvikthota@gmail.com" className="cemail anim-card">
+        srisairithvikthota@gmail.com
+      </a>
+      <div className="clinks anim-card">
+        {[
+          ["Email",    "mailto:srisairithvikthota@gmail.com"],
+          ["LinkedIn", "https://linkedin.com/in/YOUR_LINKEDIN"],
+          ["GitHub",   "https://github.com/YOUR_GITHUB"],
+          ["Call",     "tel:7164150990"],
+        ].map(([l, h]) => (
+          <a key={l} href={h}
+             target={h.startsWith("http") ? "_blank" : undefined}
+             rel="noopener noreferrer" className="cl">{l}</a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════ ROOT ═══════════════════════════════════════════ */
+export default function App() {
+  const [ready, setReady] = useState(false);
+  const [sy, setSy]       = useState(0);
+  const onSc = useCallback(y => setSy(y), []);
+  useLenis(onSc);
+  useAnims(ready);
+  return (
+    <>
+      <WebGLBg />
+      <div className="noise" />
+      {!ready && <Loader onDone={() => setReady(true)} />}
+      <Cursor />
+      <Nav />
+      <main>
+        <Hero ready={ready} sy={sy} />
+        <About />
+        <Skills />
+        <Projects />
+        <Experience />
+        <Publications />
+        <Contact />
+      </main>
+      <footer className="foot">
+        <span>2026 Sri Sai Rithvik Thota</span>
+        <span>React · Vite · WebGL · GSAP · Lenis</span>
+      </footer>
+    </>
+  );
+}
