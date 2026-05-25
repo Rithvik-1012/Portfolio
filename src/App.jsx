@@ -26,7 +26,7 @@ const PROJECTS = [
     desc:"Event-driven architecture processing 8TB+/day with exactly-once semantics and sub-second end-to-end latency. Fault-tolerant microservices with circuit breakers, dead-letter queues, and Kubernetes HPA.",
     stack:["Kafka","Spark Streaming","Airflow","Python","Kubernetes","Docker","Grafana"],
     stats:[["8TB+","Daily Volume"],["<1s","Latency"],["50+","Custom Metrics"],["12min","Incident Detection"]],
-    url:"https://github.com/YOUR_GITHUB",
+    url:"https://github.com/Rithvik-1012",
   },
   {
     n:"02", ft:false, color:"#7b2fff",
@@ -35,7 +35,7 @@ const PROJECTS = [
     desc:"React + TypeScript frontend, Node.js/Express backend. Elasticsearch full-text search across 10K+ products with faceted filtering, JWT auth, Redis caching — sub-300ms response times.",
     stack:["React","TypeScript","Node.js","Elasticsearch","Redis","PostgreSQL","Docker"],
     stats:[["<300ms","Response Time"],["10K+","Products Indexed"]],
-    url:"https://github.com/YOUR_GITHUB",
+    url:"https://github.com/Rithvik-1012",
   },
   {
     n:"03", ft:false, color:"#ff2f6e",
@@ -44,7 +44,7 @@ const PROJECTS = [
     desc:"MPI + C++ parallel solver for 2D heat diffusion. 9× speedup with 85% parallel efficiency on 8-node cluster. Non-blocking I/O, message aggregation, benchmarked across 16M+ grid points.",
     stack:["MPI","C++","Python","HPC","Bash"],
     stats:[["9×","Speedup"],["85%","Parallel Efficiency"]],
-    url:"https://github.com/YOUR_GITHUB",
+    url:"https://github.com/Rithvik-1012",
   },
 ];
 
@@ -618,8 +618,8 @@ function Contact() {
       <div className="clinks anim-card">
         {[
           ["Email",    "mailto:srisairithvikthota@gmail.com"],
-          ["LinkedIn", "https://linkedin.com/in/YOUR_LINKEDIN"],
-          ["GitHub",   "https://github.com/YOUR_GITHUB"],
+          ["LinkedIn", "https://linkedin.com/in/rithvik-thota-48161b1a4"],
+          ["GitHub",   "https://github.com/Rithvik-1012"],
           ["Call",     "tel:7164150990"],
         ].map(([l, h]) => (
           <a key={l} href={h}
